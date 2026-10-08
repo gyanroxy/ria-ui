@@ -47,7 +47,7 @@ export const PERM: Record<string, Record<RoleKey, PermissionLevel>> = {
 export const NAV: NavItem[] = [
   { k: 'dashboard', t: 'Dashboard', ic: '⌂', scr: 'SCR-02' },
   { k: 'collections', t: 'Collections', ic: '₹', scr: 'SCR-03', badge: 4 },
-  { k: 'calls', t: 'Calls', ic: '☏', scr: 'SCR-05' },
+  { k: 'calls', t: 'Call Campaign', ic: '☏', scr: 'SCR-05' },
   { k: 'reschedule', t: 'Reschedule', ic: '⏰', scr: 'SCR-17', badge: 5 },
   { k: 'tickets', t: 'Tickets', ic: '⚑', scr: 'SCR-11', badge: 4 },
   { k: 'contacts', t: 'Contacts', ic: '📇', scr: 'SCR-16' },
@@ -56,7 +56,7 @@ export const NAV: NavItem[] = [
 export const TITLES: Record<string, [string, string, string]> = {
   dashboard: ['SCR-02', 'Dashboard', 'Graphs, downloadable reports and everyone who uses RIA.'],
   collections: ['SCR-03', 'Collections', 'Promises to pay, calls not lifted, and how every retailer responded today.'],
-  calls: ['SCR-05', 'Calls', 'Import the daily call list as a CSV and follow every call through the day.'],
+  calls: ['SCR-05', 'Call Campaign', 'Import the daily campaign call list as a CSV and follow every call through the day.'],
   calldetail: ['SCR-06', 'Call Detail', 'The evidential record of one call.'],
   reschedule: ['SCR-17', 'Reschedule & Callback Queue', 'Autonomous 5-min retries for unlifted calls and customer-requested callback time slots.'],
   retailers: ['SCR-04', 'Retailer 360', 'Everything known about one retailer, and what to do next.'],
@@ -558,15 +558,18 @@ export const GREET: Record<string, [string, string]> = {
 };
 
 export const CSV_ALIASES: Record<string, string[]> = {
-  name: ['name', 'customer_name', 'contact_name', 'person', 'retailer_name'],
+  business_name: ['business_name', 'business name', 'business', 'store_name', 'company', 'retailer_name', 'store', 'firm', 'name'],
+  name: ['name', 'customer_name', 'contact_name', 'person', 'owner_name', 'business_name', 'business'],
   phno: ['phno', 'phone', 'mobile', 'ph', 'contact', 'tel', 'phone_number'],
-  business: ['business', 'store_name', 'retailer_name', 'company', 'shop_name', 'store', 'firm'],
-  amount: ['amount', 'os', 'total_amount', 'total_due', 'balance', 'total_os', 'order_amount'],
-  due_amount: ['due_amount', 'due amount', 'dueamt', 'od', 'overdue', 'past_due', 'od_amount', 'pending_amount'],
-  due_date: ['due_date', 'due date', 'duedate', 'ptp_date', 'target_date', 'date'],
+  invoice_date: ['invoice_date', 'invoice date', 'inv_date', 'date', 'bill_date', 'due_date', 'due date'],
+  invoice_number: ['invoice_number', 'invoice number', 'inv_no', 'invoice_no', 'inv_num', 'bill_no', 'invoice', 'code', 'id'],
+  invoice_amount: ['invoice_amount', 'invoice amount', 'amount', 'inv_amt', 'due_amount', 'due amount', 'balance', 'os', 'od', 'total_amount'],
+  amount: ['amount', 'invoice_amount', 'invoice amount', 'os', 'total_amount', 'total_due', 'balance', 'total_os', 'order_amount'],
+  due_amount: ['due_amount', 'due amount', 'invoice_amount', 'invoice amount', 'dueamt', 'od', 'overdue', 'past_due', 'od_amount', 'pending_amount'],
+  due_date: ['due_date', 'due date', 'invoice_date', 'invoice date', 'duedate', 'ptp_date', 'target_date', 'date'],
   credit_period: ['credit_period', 'credit period', 'creditperiod', 'terms', 'payment_terms', 'credit_days', 'days'],
   lang: ['lang', 'language', 'preferred_lang', 'vernacular'],
-  code: ['code', 'retailer_code', 'cust_code', 'id'],
+  code: ['code', 'retailer_code', 'cust_code', 'invoice_number', 'invoice_no', 'id'],
   city: ['city', 'location', 'area', 'town'],
   bucket: ['bucket', 'aging', 'ageing', 'days_past_due', 'dpd'],
 };

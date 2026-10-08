@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useApp } from '@/context/AppContext';
-import { downloadCSV } from '@/utils/formatters';
+import { parseCSV, downloadCSV } from '@/utils/formatters';
 import { CampaignContact, CallItem } from '@/types';
 import AddContactModalContent from './AddContactModal';
 
@@ -12,6 +12,7 @@ export default function ContactsTable() {
   const [search, setSearch] = useState('');
   const [creditFilter, setCreditFilter] = useState('ALL');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const filtered = campaignContacts.filter((c) => {
     if (creditFilter !== 'ALL' && c.creditPeriod !== creditFilter) return false;
@@ -77,13 +78,36 @@ export default function ContactsTable() {
     );
   };
 
-  const handleExportCSV = () => {
-    const rows = [
-      ['Name', 'Phone Number', 'Credit Period', 'Added Date'],
-      ...campaignContacts.map((c) => [c.name, c.phno, c.creditPeriod, c.addedAt || '2026-04-14']),
-    ];
-    downloadCSV('ria_campaign_contacts.csv', rows);
-    showToast('Exported ria_campaign_contacts.csv');
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const text = event.target?.result as string;
+      const rows = parseCSV(text);
+      if (rows.length < 2) {
+        showToast('CSV must contain a header and at least 1 contact row.');
+        return;
+      }
+      let importedCount = 0;
+      for (let i = 1; i < rows.length; i++) {
+        const row = rows[i];
+        const name = row[0]?.trim();
+        const ph = row[1]?.trim();
+        const terms = row[2]?.trim() || '30 Days';
+        if (name && ph) {
+          addCampaignContact({
+            name,
+            phno: ph.startsWith('+') ? ph : `+91 ${ph}`,
+            creditPeriod: terms,
+          });
+          importedCount++;
+        }
+      }
+      showToast(`✓ Imported ${importedCount} contacts from ${file.name}`);
+    };
+    reader.readAsText(file);
   };
 
   return (
@@ -101,8 +125,19 @@ export default function ContactsTable() {
               {selectedIds.size} Selected for Campaign
             </span>
           )}
-          <button className="btn btn-ghost btn-sm" onClick={handleExportCSV}>
-            Export CSV
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".csv"
+            style={{ display: 'none' }}
+            onChange={handleFileChange}
+          />
+          <button
+            className="btn btn-ghost btn-sm"
+            onClick={() => fileInputRef.current?.click()}
+            title="Import contacts from a CSV file"
+          >
+            Import .csv
           </button>
           {allowed && (
             <button className="btn btn-primary btn-sm" onClick={handleOpenAddModal}>

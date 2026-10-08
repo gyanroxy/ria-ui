@@ -56,25 +56,21 @@ export function ImportPreviewModalContent({
         <table>
           <thead>
             <tr>
-              <th>Customer Name</th>
+              <th>Business Name</th>
               <th>Phone</th>
-              <th>Business / Store</th>
-              <th className="right">Amount</th>
-              <th className="right">Due Amount</th>
-              <th>Due Date</th>
-              <th>Credit Period</th>
+              <th>Invoice Date</th>
+              <th>Invoice Number</th>
+              <th className="right">Invoice Amount</th>
             </tr>
           </thead>
           <tbody>
             {imp.valid.slice(0, 5).map((v, i) => (
               <tr key={i}>
-                <td><b>{v.name}</b></td>
+                <td><b>{v.businessName || v.name}</b></td>
                 <td className="mono">{v.phone}</td>
-                <td>{v.business || 'Retailer Account'}</td>
-                <td className="num right">₹{Number(v.amount || 0).toLocaleString('en-IN')}</td>
-                <td className="num right" style={{ color: 'var(--red)' }}>₹{Number(v.od || 0).toLocaleString('en-IN')}</td>
-                <td className="mono" style={{ fontSize: '12px' }}>{v.dueDate || '—'}</td>
-                <td><span className="chip c-blue">{v.creditPeriod || '30 Days'}</span></td>
+                <td className="mono" style={{ fontSize: '12px' }}>{v.invoiceDate || v.dueDate || '—'}</td>
+                <td className="mono">{v.invoiceNumber || v.code}</td>
+                <td className="num right" style={{ color: 'var(--navy)' }}>₹{Number(v.invoiceAmount || v.amount || 0).toLocaleString('en-IN')}</td>
               </tr>
             ))}
           </tbody>
@@ -116,13 +112,11 @@ export default function ImportCard() {
       return headers.findIndex((h) => aliases.some((a) => h === a || h.includes(a)));
     };
 
-    const cName = mapCol('name');
+    const cBusiness = mapCol('business_name');
     const cPhone = mapCol('phno');
-    const cBusiness = mapCol('business');
-    const cAmount = mapCol('amount');
-    const cDueAmount = mapCol('due_amount');
-    const cDueDate = mapCol('due_date');
-    const cCredit = mapCol('credit_period');
+    const cInvDate = mapCol('invoice_date');
+    const cInvNum = mapCol('invoice_number');
+    const cInvAmt = mapCol('invoice_amount');
     const cLang = mapCol('lang');
 
     const valid: any[] = [];
@@ -131,12 +125,12 @@ export default function ImportCard() {
 
     for (let i = 1; i < rawRows.length; i++) {
       const r = rawRows[i];
-      const name = cName !== -1 ? r[cName] : '';
+      const businessName = cBusiness !== -1 ? r[cBusiness] : '';
       const phoneRaw = cPhone !== -1 ? r[cPhone] : '';
       const cleanPhone = phoneRaw.replace(/[^0-9]/g, '');
 
-      if (!name || name.trim().length === 0) {
-        rejects.push({ row: r, reason: 'Customer name is missing' });
+      if (!businessName || businessName.trim().length === 0) {
+        rejects.push({ row: r, reason: 'Business name is missing' });
         continue;
       }
       if (cleanPhone.length < 10) {
@@ -144,24 +138,23 @@ export default function ImportCard() {
         continue;
       }
 
-      const businessVal = cBusiness !== -1 && r[cBusiness] ? r[cBusiness].trim() : name.trim();
-      const amountVal = cAmount !== -1 ? parseFloat(r[cAmount].replace(/[^0-9.-]/g, '')) || 0 : 0;
-      const dueAmountVal = cDueAmount !== -1 ? parseFloat(r[cDueAmount].replace(/[^0-9.-]/g, '')) || amountVal : amountVal;
-      totalOd += dueAmountVal;
-
-      const dueDateVal = cDueDate !== -1 && r[cDueDate] ? r[cDueDate].trim() : '2026-04-18';
-      const creditVal = cCredit !== -1 && r[cCredit] ? r[cCredit].trim() : '30 Days';
+      const invoiceDateVal = cInvDate !== -1 && r[cInvDate] ? r[cInvDate].trim() : '2026-04-18';
+      const invoiceNumVal = cInvNum !== -1 && r[cInvNum] ? r[cInvNum].trim() : `INV-${1000 + i}`;
+      const amountVal = cInvAmt !== -1 ? parseFloat(r[cInvAmt].replace(/[^0-9.-]/g, '')) || 0 : 0;
+      totalOd += amountVal;
 
       valid.push({
-        code: `RET-${1000 + i}`,
-        name: name.trim(),
-        business: businessVal,
+        code: invoiceNumVal,
+        businessName: businessName.trim(),
+        name: businessName.trim(),
         phone: cleanPhone.length === 10 ? `+91 ${cleanPhone.slice(0, 5)} ${cleanPhone.slice(5)}` : `+${cleanPhone}`,
-        amount: amountVal || dueAmountVal,
-        od: dueAmountVal,
-        dueDate: dueDateVal,
+        invoiceNumber: invoiceNumVal,
+        invoiceDate: invoiceDateVal,
+        invoiceAmount: amountVal,
+        amount: amountVal,
+        od: amountVal,
+        dueDate: invoiceDateVal,
         lang: cLang !== -1 && r[cLang] ? r[cLang].trim() : 'Telugu',
-        creditPeriod: creditVal,
       });
     }
 
@@ -179,20 +172,20 @@ export default function ImportCard() {
 
           const generatedCalls: CallItem[] = valid.map((v, idx) => ({
             id: `CL-${5000 + idx}`,
-            ret: `R-${idx + 1}`,
-            name: v.business ? `${v.business} (${v.name})` : v.name,
+            ret: v.invoiceNumber || `R-${idx + 1}`,
+            name: v.businessName,
             ph: v.phone,
             time: 'Queued',
             lang: v.lang,
             dur: '—',
             disp: 'Queued for dialing',
-            ptp: v.dueDate || '—',
+            ptp: v.invoiceDate || '—',
             auto: 'L2',
             audio: 'rec-queued.wav',
             score: 80,
             batchId: newBatchId,
             turns: [
-              { who: 'RIA', lang: 'te', txt: `నమస్కారం ${v.name} గారూ! రాక్సీ డిస్ట్రిబ్యూటర్స్ నుంచి ఆర్ఐఏ (RIA) ని మాట్లాడుతున్నాను.` }
+              { who: 'RIA', lang: 'te', txt: `నమస్కారం ${v.businessName} గారూ! రాక్సీ డిస్ట్రిబ్యూటర్స్ నుంచి ఆర్ఐఏ (RIA) ని మాట్లాడుతున్నాను.` }
             ]
           }));
 
@@ -214,9 +207,9 @@ export default function ImportCard() {
           };
 
           const newContacts = valid.map((v) => ({
-            name: v.business ? `${v.name} — ${v.business}` : v.name,
+            name: v.businessName,
             phno: v.phone,
-            creditPeriod: v.creditPeriod || '30 Days',
+            creditPeriod: '30 Days',
           }));
 
           addBatch(newBatch);
@@ -241,25 +234,25 @@ export default function ImportCard() {
   };
 
   const loadSample = () => {
-    const sample = `name,phno,business,amount,due amount,due date,credit period
-Venkatesh Rao,+91 98490 22114,Sri Balaji Kirana & General Store,245000,180000,2026-04-18,30 Days
-Lakshmi Narayana,+91 97001 88342,Lakshmi Super Bazar,380000,380000,2026-04-15,45 Days
-Ganesh Kumar,+91 94400 12789,Ganesh Provision Store,95000,45000,2026-04-20,30 Days
-Ramesh Gupta,+91 98850 66321,Shree Krishna Traders,520000,520000,2026-04-10,60 Days
-Bharat Shah,+91 99123 45670,New Bharat Medical & General,140000,140000,2026-04-16,30 Days
-Durga Prasad,+91 96521 90812,Durga Bhavani Stores,185000,185000,2026-04-22,30 Days
-Maruthi Reddy,+91 98499 88771,Maruthi Fancy & General,110000,110000,2026-04-19,30 Days
-Balaji S.,+91 98490 88219,Balaji Agencies & Stores,90000,90000,2026-04-25,30 Days`;
+    const sample = `business name,phno,invoice date,invoice number,invoice amount
+Sri Balaji Kirana & General Store,+91 98490 22114,2026-04-18,INV-2026-001,180000
+Lakshmi Super Bazar,+91 97001 88342,2026-04-15,INV-2026-002,380000
+Ganesh Provision Store,+91 94400 12789,2026-04-20,INV-2026-003,45000
+Shree Krishna Traders,+91 98850 66321,2026-04-10,INV-2026-004,520000
+New Bharat Medical & General,+91 99123 45670,2026-04-16,INV-2026-005,140000
+Durga Bhavani Stores,+91 96521 90812,2026-04-22,INV-2026-006,185000
+Maruthi Fancy & General,+91 98499 88771,2026-04-19,INV-2026-007,110000
+Balaji Agencies & Stores,+91 98490 88219,2026-04-25,INV-2026-008,90000`;
     processText('sample_daily_calls.csv', sample);
   };
 
   const downloadTemplate = () => {
     const rows = [
-      ['name', 'phno', 'business', 'amount', 'due amount', 'due date', 'credit period'],
-      ['Venkatesh Rao', '+91 98490 22114', 'Sri Balaji Kirana & General Store', '245000', '180000', '2026-04-18', '30 Days'],
-      ['Lakshmi Narayana', '+91 97001 88342', 'Lakshmi Super Bazar', '380000', '380000', '2026-04-15', '45 Days'],
-      ['Ganesh Kumar', '+91 94400 12789', 'Ganesh Provision Store', '95000', '45000', '2026-04-20', '30 Days'],
-      ['Ramesh Gupta', '+91 98850 66321', 'Shree Krishna Traders', '520000', '520000', '2026-04-10', '60 Days'],
+      ['business name', 'phno', 'invoice date', 'invoice number', 'invoice amount'],
+      ['Sri Balaji Kirana & General Store', '+91 98490 22114', '2026-04-18', 'INV-2026-001', '180000'],
+      ['Lakshmi Super Bazar', '+91 97001 88342', '2026-04-15', 'INV-2026-002', '380000'],
+      ['Ganesh Provision Store', '+91 94400 12789', '2026-04-20', 'INV-2026-003', '45000'],
+      ['Shree Krishna Traders', '+91 98850 66321', '2026-04-10', 'INV-2026-004', '520000'],
     ];
     downloadCSV('ria_call_sheet_template.csv', rows);
     showToast('Downloaded ria_call_sheet_template.csv');
@@ -313,13 +306,11 @@ Balaji S.,+91 98490 88219,Balaji Agencies & Stores,90000,90000,2026-04-25,30 Day
             <div style={{ fontWeight: 700, fontSize: '12px', letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--t3)' }}>
               Template Structure:
             </div>
-            <div><span className="mono">name</span> <span className="meta">Customer / Owner full name</span></div>
-            <div><span className="mono">phno</span> <span className="meta">10-digit Indian mobile number</span></div>
-            <div><span className="mono">business</span> <span className="meta">Store or business entity name</span></div>
-            <div><span className="mono">amount</span> <span className="meta">Total ledger balance / order (INR)</span></div>
-            <div><span className="mono">due amount</span> <span className="meta">Overdue balance to collect (INR)</span></div>
-            <div><span className="mono">due date</span> <span className="meta">Payment due date (YYYY-MM-DD)</span></div>
-            <div><span className="mono">credit period</span> <span className="meta">Terms (e.g. 30 Days, 45 Days)</span></div>
+            <div><span className="mono">business name</span> <span className="meta">Retailer store or commercial trade name</span></div>
+            <div><span className="mono">phno</span> <span className="meta">10-digit Indian mobile / contact number</span></div>
+            <div><span className="mono">invoice date</span> <span className="meta">Invoice issue or due date (YYYY-MM-DD)</span></div>
+            <div><span className="mono">invoice number</span> <span className="meta">ERP invoice or bill reference (e.g. INV-2026-001)</span></div>
+            <div><span className="mono">invoice amount</span> <span className="meta">Total overdue or billed invoice balance (INR)</span></div>
           </div>
         </div>
       </div>
